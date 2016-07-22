@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel src -d lib",
+    "build": "babel --presets es2015,stage-0 -d lib/ src/",
+    "prepublish": "npm run build",
     "docs": "doctoc ."
   },
   "babel": {
