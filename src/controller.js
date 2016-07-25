@@ -183,9 +183,15 @@ export default class Controller {
     next();
   }
 
+  /**
+   * Attempts to respond to the request with data or error
+   * Can respond in either `json` or `xml` format
+   * Always calls `next`
+   */
   finalResponse(req, res, next) {
     // If we timed out before managing to respond, don't send the response
     if (res.headersSent) {
+      next();
       return;
     }
 
@@ -211,6 +217,12 @@ export default class Controller {
         } catch (e) {
           res.status(500).end();
         }
+      },
+      text() {
+        res.status(res.code).send(res.data);
+      },
+      default() {
+        res.status(406).send('Not Acceptable');
       },
     });
 
