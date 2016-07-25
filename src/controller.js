@@ -183,7 +183,7 @@ export default class Controller {
     next();
   }
 
-  finalResponse(req, res) {
+  finalResponse(req, res, next) {
     // If we timed out before managing to respond, don't send the response
     if (res.headersSent) {
       return;
@@ -213,5 +213,7 @@ export default class Controller {
         }
       },
     });
+
+    next();
   }
 }
