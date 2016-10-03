@@ -27,13 +27,6 @@ console.json = (object, pretty) => {
   console.log.call(console, json);
 };
 
-const inspect = require('eyes').inspector({
-  maxLength: 32768,
-  sortObjectKeys: true,
-  hideFunctions: true,
-});
-console.inspect = inspect;
-
 // Test object
 global.test = {
   getFixture(filename) {
