@@ -5,6 +5,11 @@ const pe = new PrettyError();
 pe.skipNodeFiles(); // this will skip events.js and http.js and similar core node files
 pe.skipPackage('express', 'bluebird');
 
+// Escape special characters for use in Mongo query
+function escapeRegExp(str) {
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
+}
+
 export default class Controller {
   constructor(app, wss) {
     // Referenecs to the express app and websocketserver connection
@@ -106,6 +111,105 @@ export default class Controller {
     }
 
     next();
+  }
+
+  parseQueryParams(req) {
+    if (!this.queryParams) {
+      return {};
+    }
+
+    const query = {};
+    const queries = [];
+    const params = _.pick(req.query, _.keys(this.queryParams));
+    const logicalOperator = `$${(req.query.logical || 'and').toLowerCase().replace(/[@\s]/g, '')}`;
+
+    _.forEach(params, (val, key) => {
+      // If value is all, ignore this param
+      if (val === 'all') {
+        return;
+      }
+
+      // Make sure val is a string (should usually be from express)
+      if (!_.isString(val)) {
+        val = val.toString();
+      }
+
+      // Support `,` as `$or` for each param
+      let vals = val.split(',');
+
+      // No value, ignore this param
+      if (vals.length === 0) {
+        return;
+      }
+
+      // The built query filter
+      const filter = {};
+
+      // Get param type defined in `queryParams`
+      const type = this.queryParams[key];
+
+      // Deal with different param types
+      if (type === 'bool' || type === 'boolean') {
+        vals = _.map(vals, (v) => {
+          if (v === 'true' || v === '1') {
+            return true;
+          } else if (v === 'false' || v === '0') {
+            return false;
+          }
+
+          return false;
+        });
+      } else if (type === 'string') {
+        // strings and objectid
+        // no transformation
+      } else if (type === 'regex') {
+        // regex case insensitive and escaping special characters
+        vals = _.map(vals, (v) => {
+          return {
+            $regex: escapeRegExp(v),
+            $options: 'i',
+          };
+        });
+      } else if (type === 'integer') {
+        // integers
+        vals = _.map(vals, (v) => {
+          return _.parseInt(v);
+        });
+      } else if (type === 'float') {
+        // floats
+        vals = _.map(vals, (v) => {
+          return parseFloat(v);
+        });
+      } else {
+        // invalid or unknown type
+        return;
+      }
+
+      // If there is only one val, no need to use `$or`
+      if (vals.length === 1) {
+        filter[key] = vals[0];
+      } else {
+        const orExpr = [];
+        _.forEach(vals, (orVal) => {
+          const orClause = {};
+          orClause[key] = orVal;
+          orExpr.push(orClause);
+        });
+        filter.$or = orExpr;
+      }
+
+      queries.push(filter);
+    });
+
+    // Combine the query
+    if (queries.length === 1) {
+      _.assign(query, queries[0]);
+    } else if (queries.length > 0) {
+      query[logicalOperator] = queries;
+    }
+
+    // console.log('parseQueryParams', query);
+    return query;
   }
 
   successResponse(req, res, next) {
