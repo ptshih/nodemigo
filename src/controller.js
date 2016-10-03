@@ -30,10 +30,7 @@ export default class Controller {
     this.after = []; // run after route handler
 
     // Internal middleware
-    this._begin = [
-      this.parseFields,
-      this.parseSkipLimitSortOrder,
-    ];
+    this._begin = [];
     this._end = [
       this.successResponse,
       this.errorResponse,
@@ -61,12 +58,13 @@ export default class Controller {
   /**
    * http://mongoosejs.com/docs/api.html#query_Query-select
    */
-  parseFields(req, res, next) {
+  parseFields(req) {
+    let select;
     if (_.isString(req.query.fields)) {
-      this.select = req.query.fields.replace(/\s+/g, '').replace(/,/g, ' ');
+      select = req.query.fields.replace(/\s+/g, '').replace(/,/g, ' ');
     }
 
-    next();
+    return select;
   }
 
   /**
@@ -74,14 +72,14 @@ export default class Controller {
    * http://mongoosejs.com/docs/api.html#query_Query-limit
    * http://mongoosejs.com/docs/api.html#query_Query-sort
    */
-  parseSkipLimitSortOrder(req, res, next) {
+  parseSkipLimitSortOrder(req) {
     // Skip and Limit
-    this.skip = _.parseInt(req.query.skip || req.query.offset) || 0;
-    this.limit = _.parseInt(req.query.limit || req.query.count) || 0;
+    let skip = _.parseInt(req.query.skip || req.query.offset) || 0;
+    const limit = _.parseInt(req.query.limit || req.query.count) || 0;
 
     // Support using `page` instead of `skip`
-    this.page = _.parseInt(req.query.page);
-    if (this.page > 0) {
+    const page = _.parseInt(req.query.page);
+    if (page > 0) {
       // IMPORTANT! `page` starts at 1
       // if `page` is specified, we override `skip`
       // calculate skip based on page and limit
@@ -89,10 +87,11 @@ export default class Controller {
       // page 1 is skip 0
       // page 2 is skip 100
       // etc...
-      this.skip = (this.page - 1) * this.limit;
+      skip = (page - 1) * limit;
     }
 
     // Sort and Sort Order
+    const sort = {};
     if (req.query.sort) {
       let order;
       switch (req.query.order) {
@@ -108,10 +107,15 @@ export default class Controller {
           order = 1;
           break;
       }
-      this.sort[req.query.sort] = order;
+      sort[req.query.sort] = order;
     }
 
-    next();
+    return {
+      skip,
+      limit,
+      page,
+      sort,
+    };
   }
 
   parseQueryParams(req) {
