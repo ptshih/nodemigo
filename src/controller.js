@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import xml2js from 'xml2js';
 import PrettyError from 'pretty-error';
+
 const pe = new PrettyError();
 pe.skipNodeFiles(); // this will skip events.js and http.js and similar core node files
 pe.skipPackage('express', 'bluebird');
@@ -151,9 +152,9 @@ export default class Controller {
       // Deal with different param types
       if (type === 'bool' || type === 'boolean') {
         vals = _.map(vals, (v) => {
-          if (v === 'true' || v === '1') {
+          if (v === 'true' || v === 'yes' || v === '1') {
             return true;
-          } else if (v === 'false' || v === '0') {
+          } else if (v === 'false' || v === 'no' || v === '0') {
             return false;
           }
 
@@ -164,22 +165,16 @@ export default class Controller {
         // no transformation
       } else if (type === 'regex') {
         // regex case insensitive and escaping special characters
-        vals = _.map(vals, (v) => {
-          return {
-            $regex: escapeRegExp(v),
-            $options: 'i',
-          };
-        });
+        vals = _.map(vals, v => ({
+          $regex: escapeRegExp(v),
+          $options: 'i',
+        }));
       } else if (type === 'integer') {
         // integers
-        vals = _.map(vals, (v) => {
-          return _.parseInt(v);
-        });
+        vals = _.map(vals, v => _.parseInt(v));
       } else if (type === 'float') {
         // floats
-        vals = _.map(vals, (v) => {
-          return parseFloat(v);
-        });
+        vals = _.map(vals, v => parseFloat(v));
       } else {
         // invalid or unknown type
         return;
