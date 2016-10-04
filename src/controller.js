@@ -78,7 +78,7 @@ export default class Controller {
     const limit = _.parseInt(req.query.limit || req.query.count) || 0;
 
     // Support using `page` instead of `skip`
-    const page = _.parseInt(req.query.page);
+    const page = _.parseInt(req.query.page) || 0;
     if (page > 0) {
       // IMPORTANT! `page` starts at 1
       // if `page` is specified, we override `skip`
