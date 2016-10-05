@@ -224,10 +224,6 @@ export default class Controller {
       data,
     };
 
-    if (req.mock) {
-      envelope.meta.mock = true;
-    }
-
     // Optional paging meta
     if (res.paging) {
       envelope.meta.paging = res.paging;
