@@ -40,9 +40,9 @@ export default class Controller {
     });
   }
 
-  throwError(message, code = 500) {
+  throwError(message, status = 500) {
     const err = new Error(message);
-    err.code = code;
+    err.status = status;
     throw err;
   }
 
@@ -207,71 +207,118 @@ export default class Controller {
   }
 
   successResponse(req, res, next) {
-    const data = res.data || null;
-    let code = 200;
-    if (_.isNumber(res.code)) {
-      code = res.code;
-    }
     const envelope = {
       meta: {
-        code,
+        statusCode: res.statusCode,
       },
-      data,
+      data: res.data || {},
     };
 
-    // Optional paging meta
-    if (res.paging) {
+    // Paging (optional)
+    if (_.isPlainObject(res.paging)) {
       envelope.meta.paging = res.paging;
     }
 
-    // Set code and data
-    res.code = code;
-    if (res.code !== 204) {
-      res.data = envelope;
-    }
+    // Response
+    res.envelope = res.statusCode !== 204 ? envelope : undefined;
 
     next();
   }
 
+  /**
+   * Error
+   * - statusCode (http status code - number)
+   * - type (internal error type - string)
+   * - message (human readable - string)
+   * - line (stack trace - string)
+   */
   errorResponse(err, req, res, next) {
-    // Extract message and code from error
-    err.message = err.message || 'Internal Server Error';
-    err.code = _.parseInt(err.code) || _.parseInt(res.code) || 500;
+    let error;
 
-    if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
-      // All validation errors are code 400
-      err.code = 400;
-
-      const errorMessages = [err.message];
-      _.each(req.validationErrors(), (validationError) => {
-        errorMessages.push(`${validationError.msg}`);
-        err.message = errorMessages.join(' ');
-      });
+    if (/E11000/.test(err.message)) {
+      error = new Error('Conflict');
+      error.statusCode = 409;
+    } else if (err.name === 'ValidationError') {
+      // Mongoose Validation
+      error = new Error(_.map(err.errors, 'message').join(', '));
+      error.statusCode = 400;
+    } else if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
+      // Express Validator
+      const messages = req.validationErrors().map(ve => `[${ve.param} -> ${ve.msg}]`);
+      error = new Error(messages.join(', '));
+      error.statusCode = 400;
+    } else {
+      error = new Error(err.message || 'Internal Server Error');
+      error.statusCode = _.parseInt(err.statusCode) || 500;
     }
 
+    // Pass on any `meta` data from the original error
+    error.meta = err.meta;
+
     // Try and extract the line in which the error was caught
-    try {
-      err.line = err.stack.split('\n')[1].match(/at\s(.*)/)[1];
-    } catch (e) {
-      err.line = null;
+    if (err.stack) {
+      try {
+        error.line = err.stack.split('\n')[1].match(/at\s(.*)/)[1];
+      } catch (e) {
+        error.line = null;
+      }
+    }
+
+    let defaultErrorType;
+    switch (error.statusCode) {
+      case 400:
+        defaultErrorType = 'BAD_REQUEST';
+        break;
+      case 401:
+        defaultErrorType = 'UNAUTHORIZED';
+        break;
+      case 402:
+      case 403:
+        defaultErrorType = 'FORBIDDEN';
+        break;
+      case 404:
+        defaultErrorType = 'NOT_FOUND';
+        break;
+      case 405:
+        defaultErrorType = 'METHOD_NOT_ALLOWED';
+        break;
+      case 406:
+        defaultErrorType = 'NOT_ACCEPTABLE';
+        break;
+      case 409:
+        defaultErrorType = 'CONFLICT';
+        break;
+      case 410:
+        defaultErrorType = 'GONE';
+        break;
+      case 501:
+        defaultErrorType = 'NOT_IMPLEMENTED';
+        break;
+      case 500:
+      default:
+        defaultErrorType = 'INTERNAL_SERVER_ERROR';
+        break;
     }
 
     const envelope = {
       meta: {
-        code: err.code,
-        error: {
-          code: err.code,
-          message: err.message,
-          line: err.line,
-        },
+        statusCode: error.statusCode,
+        errorType: error.type || defaultErrorType,
+        errorMessage: error.message,
       },
-      data: err.message,
+      data: {},
     };
 
-    // Set code and data
-    res.code = err.code;
-    res.data = envelope;
-    res.err = err;
+    // Error Line from Stack (optional)
+    if (error.line) {
+      envelope.meta.errorLine = error.line;
+    }
+
+    // Response
+    res.status(error.statusCode);
+    res.error = error;
+    res.err = error;
+    res.envelope = envelope;
 
     next();
   }
@@ -299,20 +346,20 @@ export default class Controller {
     // Use request accept header to determine response content-type
     res.format({
       json() {
-        res.status(res.code).jsonp(res.data);
+        res.jsonp(res.envelope);
       },
       xml() {
         try {
           const xmlData = JSON.parse(JSON.stringify(res.data));
           const xml = this.xmlBuilder.buildObject(xmlData);
           res.set('Content-Type', 'application/xml; charset=utf-8');
-          res.status(res.code).send(xml);
+          res.send(xml);
         } catch (e) {
           res.status(500).end();
         }
       },
       text() {
-        res.status(res.code).send(res.data);
+        res.send(res.envelope);
       },
       default() {
         res.status(406).send('Not Acceptable');
