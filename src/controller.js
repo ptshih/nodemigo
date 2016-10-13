@@ -233,22 +233,22 @@ export default class Controller {
    * - line (stack trace - string)
    */
   errorResponse(err, req, res, next) {
-    let error;
+    const error = new Error();
 
     if (/E11000/.test(err.message)) {
-      error = new Error('Conflict');
+      error.message = 'Conflict';
       error.statusCode = 409;
     } else if (err.name === 'ValidationError') {
       // Mongoose Validation
-      error = new Error(_.map(err.errors, 'message').join(', '));
+      error.message = _.map(err.errors, 'message').join(', ');
       error.statusCode = 400;
     } else if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
       // Express Validator
       const messages = req.validationErrors().map(ve => `[${ve.param} -> ${ve.msg}]`);
-      error = new Error(messages.join(', '));
+      error.message = messages.join(', ');
       error.statusCode = 400;
     } else {
-      error = new Error(err.message || 'Internal Server Error');
+      error.message = err.message || 'Internal Server Error';
       error.statusCode = _.parseInt(err.statusCode) || 500;
     }
 
