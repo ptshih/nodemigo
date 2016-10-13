@@ -238,22 +238,31 @@ export default class Controller {
     if (/E11000/.test(err.message)) {
       error.message = 'Conflict';
       error.statusCode = 409;
+      error.type = 'MONGODB_E11000';
     } else if (err.name === 'ValidationError') {
       // Mongoose Validation
       error.message = _.map(err.errors, 'message').join(', ');
       error.statusCode = 400;
+      error.type = 'MONGOOSE_VALIDATION_ERROR';
+      error.meta = {
+        errors: err.errors,
+      };
     } else if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
       // Express Validator
       const messages = req.validationErrors().map(ve => `[${ve.param} -> ${ve.msg}]`);
       error.message = messages.join(', ');
       error.statusCode = 400;
+      error.type = 'EXPRESS_VALIDATION_ERROR';
+      error.meta = {
+        validationErrors: req.validationErrors(),
+      };
     } else {
       error.message = err.message || 'Internal Server Error';
       error.statusCode = _.parseInt(err.statusCode) || 500;
     }
 
     // Pass on any `meta` data from the original error
-    error.meta = err.meta;
+    error.meta = err.meta || error.meta;
 
     // Try and extract the line in which the error was caught
     if (err.stack) {
