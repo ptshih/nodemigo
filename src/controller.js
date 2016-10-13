@@ -1,10 +1,5 @@
 import _ from 'lodash';
 import xml2js from 'xml2js';
-import PrettyError from 'pretty-error';
-
-const pe = new PrettyError();
-pe.skipNodeFiles(); // this will skip events.js and http.js and similar core node files
-pe.skipPackage('express', 'bluebird');
 
 // Escape special characters for use in Mongo query
 function escapeRegExp(str) {
@@ -239,8 +234,6 @@ export default class Controller {
   }
 
   errorResponse(err, req, res, next) {
-    console.error(pe.render(err));
-
     // Extract message and code from error
     err.message = err.message || 'Internal Server Error';
     err.code = _.parseInt(err.code) || _.parseInt(res.code) || 500;
@@ -278,6 +271,7 @@ export default class Controller {
     // Set code and data
     res.code = err.code;
     res.data = envelope;
+    res.err = err;
 
     next();
   }

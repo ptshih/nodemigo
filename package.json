@@ -47,7 +47,6 @@
     "bluebird": "^3.4.6",
     "lodash": "^4.16.2",
     "nconf": "^0.8.4",
-    "pretty-error": "^2.0.1",
     "xml2js": "^0.4.17"
   },
   "devDependencies": {
