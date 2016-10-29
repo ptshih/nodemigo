@@ -202,7 +202,6 @@ export default class Controller {
       query[logicalOperator] = queries;
     }
 
-    // console.log('parseQueryParams', query);
     return query;
   }
 

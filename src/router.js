@@ -76,11 +76,6 @@ export default function Router(options, controllers) {
           paths[path] = method;
         });
       });
-
-      // Debug logging
-      _.forEach(router.routes, (route) => {
-        console.log('├── Route [%s] %s ──┤', route.method, route.path);
-      });
     },
 
     /**
