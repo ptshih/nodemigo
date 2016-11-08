@@ -181,7 +181,8 @@ export default class Controller {
 
       // If there is only one val, no need to use `$or`
       if (vals.length === 1) {
-        filter[key] = vals[0];
+        // Treat `[]` as empty array
+        filter[key] = vals[0] === '[]' ? [] : vals[0];
       } else {
         const orExpr = [];
         _.forEach(vals, (orVal) => {
