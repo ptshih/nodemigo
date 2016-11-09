@@ -124,8 +124,8 @@ export default class Controller {
     const logicalOperator = `$${(req.query.logical || 'and').toLowerCase().replace(/[@\s]/g, '')}`;
 
     _.forEach(params, (val, key) => {
-      // If value is all, ignore this param
-      if (val === 'all') {
+      // If value is `*`, ignore this param
+      if (val === '*') {
         return;
       }
 
