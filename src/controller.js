@@ -264,6 +264,9 @@ export default class Controller {
     // Pass on any `meta` data from the original error
     error.meta = err.meta || error.meta;
 
+    // Pass on any `data` from the original error
+    error.data = err.data || {};
+
     // Try and extract the line in which the error was caught
     if (err.stack) {
       try {
@@ -315,7 +318,7 @@ export default class Controller {
         errorType: error.type || defaultErrorType,
         errorMessage: error.message,
       },
-      data: error.data || {},
+      data: error.data,
     };
 
     // Error Line from Stack (optional)
