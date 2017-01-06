@@ -315,7 +315,7 @@ export default class Controller {
         errorType: error.type || defaultErrorType,
         errorMessage: error.message,
       },
-      data: {},
+      data: error.data || {},
     };
 
     // Error Line from Stack (optional)
