@@ -1,6 +1,6 @@
 {
   "name": "nodemigo",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "A friendly set of utilities for working with Express.",
   "main": "lib/index.js",
   "engines": {
@@ -80,7 +80,14 @@
     },
     "rules": {
       "class-methods-use-this": "off",
-      "import/no-extraneous-dependencies": ["error", {"devDependencies": true, "optionalDependencies": false, "peerDependencies": false}],
+      "import/no-extraneous-dependencies": [
+        "error",
+        {
+          "devDependencies": true,
+          "optionalDependencies": false,
+          "peerDependencies": false
+        }
+      ],
       "import/no-unresolved": 1,
       "max-len": 1,
       "arrow-body-style": [
