@@ -356,14 +356,15 @@ export default class Controller {
     }
 
     // Use request accept header to determine response content-type
+    const xmlBuilder = this.xmlBuilder;
     res.format({
       json() {
         res.jsonp(res.envelope);
       },
       xml() {
         try {
-          const xmlData = JSON.parse(JSON.stringify(res.data));
-          const xml = this.xmlBuilder.buildObject(xmlData);
+          const xmlData = JSON.parse(JSON.stringify(res.envelope));
+          const xml = xmlBuilder.buildObject(xmlData);
           res.set('Content-Type', 'application/xml; charset=utf-8');
           res.send(xml);
         } catch (e) {
