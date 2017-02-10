@@ -37,6 +37,7 @@ export default function Router(options, controllers) {
         _.forEach(controller.routes, (route) => {
           // If no route path or action is defined, skip
           if (!_.isString(route.path) || !_.isFunction(route.action)) {
+            // eslint-disable-next-line no-console
             console.warn('Skipping invalid route...');
             return;
           }
@@ -47,6 +48,7 @@ export default function Router(options, controllers) {
 
           // If path/method has already been defined, skip
           if (paths[path] === method) {
+            // eslint-disable-next-line no-console
             console.warn('Skipping duplicate route: [%s] %s', method, path);
             return;
           }
