@@ -7,9 +7,9 @@ function escapeRegExp(str) {
 }
 
 export default class Controller {
-  constructor(app, wss) {
-    // Referenecs to the express app and websocketserver connection
+  constructor(app, { db, wss }) {
     this.app = app;
+    this.db = db;
     this.wss = wss;
 
     // Mongoose
