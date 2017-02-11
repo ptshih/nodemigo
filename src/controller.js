@@ -7,7 +7,7 @@ function escapeRegExp(str) {
 }
 
 export default class Controller {
-  constructor(app, { db, wss }) {
+  constructor({ app, db, wss }) {
     this.app = app;
     this.db = db;
     this.wss = wss;
