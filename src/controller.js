@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import xml2js from 'xml2js';
 
-// Escape special characters for use in Mongo query
+// Escape special characters in regex string
 function escapeRegExp(str) {
   return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
 }
@@ -11,10 +11,6 @@ export default class Controller {
     this.app = app;
     this.db = db;
     this.wss = wss;
-
-    // Mongoose
-    this.sort = {};
-    this.select = null;
 
     // Controller defined routes
     this.routes = [];
@@ -46,71 +42,59 @@ export default class Controller {
     throw err;
   }
 
+  addRoutes(routes) {
+    this.routes = [...this.routes, ...routes];
+  }
+
   /* Middleware */
 
   // TODO: Parse created_at/updated_at bounding
 
-  /**
-   * http://mongoosejs.com/docs/api.html#query_Query-select
-   */
   parseFields(req) {
-    let select;
-    if (_.isString(req.query.fields)) {
-      select = req.query.fields.replace(/\s+/g, '').replace(/,/g, ' ');
+    const fields = req.query.fields || req.query.attributes;
+    if (!_.isString(fields)) {
+      return [];
     }
 
-    return select;
+    return fields.replace(/\s+/g, '').split(',');
   }
 
-  /**
-   * http://mongoosejs.com/docs/api.html#query_Query-skip
-   * http://mongoosejs.com/docs/api.html#query_Query-limit
-   * http://mongoosejs.com/docs/api.html#query_Query-sort
-   */
-  parseSkipLimitSortOrder(req) {
-    // Skip and Limit
-    let skip = _.parseInt(req.query.skip || req.query.offset) || 0;
+  parsePagination(req) {
+    let offset = _.parseInt(req.query.offset || req.query.skip) || 0;
     const limit = _.parseInt(req.query.limit || req.query.count) || 0;
 
-    // Support using `page` instead of `skip`
+    // Support using `page` instead of `offset`
     const page = _.parseInt(req.query.page) || 0;
     if (page > 0) {
       // IMPORTANT! `page` starts at 1
-      // if `page` is specified, we override `skip`
-      // calculate skip based on page and limit
+      // if `page` is specified, we override `offset`
+      // calculate offset based on page and limit
       // lets assume limit is 100
-      // page 1 is skip 0
-      // page 2 is skip 100
+      // page 1 is offset 0
+      // page 2 is offset 100
       // etc...
-      skip = (page - 1) * limit;
-    }
-
-    // Sort and Sort Order
-    const sort = {};
-    if (req.query.sort) {
-      let order;
-      switch (req.query.order) {
-        case '1':
-        case 'asc':
-          order = 1;
-          break;
-        case '-1':
-        case 'desc':
-          order = -1;
-          break;
-        default:
-          order = 1;
-          break;
-      }
-      sort[req.query.sort] = order;
+      offset = (page - 1) * limit;
     }
 
     return {
-      skip,
+      offset,
       limit,
       page,
-      sort,
     };
+  }
+
+  parseOrdering(req) {
+    if (!req.query.order || !req.query.direction) {
+      return {};
+    }
+
+    const order = req.query.order;
+    const direction = req.query.direction.toUpperCase();
+    if (!['ASC', 'DESC'].includes(direction)) {
+      return {};
+    }
+
+    return [[order, direction]];
   }
 
   parseQueryParams(req) {
@@ -235,19 +219,7 @@ export default class Controller {
   errorResponse(err, req, res, next) {
     const error = new Error();
 
-    if (/E11000/.test(err.message)) {
-      error.message = 'Conflict';
-      error.statusCode = 409;
-      error.type = 'MONGODB_E11000';
-    } else if (err.name === 'ValidationError') {
-      // Mongoose Validation
-      error.message = _.map(err.errors, 'message').join(', ');
-      error.statusCode = 400;
-      error.type = 'MONGOOSE_VALIDATION_ERROR';
-      error.meta = {
-        errors: err.errors,
-      };
-    } else if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
+    if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
       // Express Validator
       const messages = req.validationErrors().map(ve => `[${ve.param} -> ${ve.msg}]`);
       error.message = messages.join(', ');
@@ -338,12 +310,10 @@ export default class Controller {
   /**
    * Attempts to respond to the request with data or error
    * Can respond in either `json` or `xml` format
-   * Always calls `next`
    */
-  finalResponse(req, res, next) {
+  finalResponse(req, res) {
     // If we timed out before managing to respond, don't send the response
     if (res.headersSent) {
-      next();
       return;
     }
 
@@ -378,7 +348,5 @@ export default class Controller {
         res.status(406).send('Not Acceptable');
       },
     });
-
-    next();
   }
 }

@@ -1,5 +1,16 @@
 import _ from 'lodash';
 import express from 'express';
+import onFinished from 'on-finished';
+import PrettyError from 'pretty-error';
+import uuid from 'uuid';
+import ipaddr from 'ipaddr.js';
+import responseTime from 'response-time';
+import helmet from 'helmet';
+
+// Pretty Error
+const pe = new PrettyError();
+pe.skipNodeFiles(); // this will skip events.js and http.js and similar core node files
+pe.skipPackage('express', 'bluebird', 'lodash');
 
 /**
  * Extends `Express.Router` with additional features
@@ -14,14 +25,121 @@ import express from 'express';
  * @param {Object} controllers An object (map) of controllers: `name -> instance`
  * @return {Router} An instance of `Express.Router`
  */
-export default function Router(options, controllers) {
+export default function Router(options = {}, controllers = {}) {
   // Create a new `Express.Router` with `options`
   // eslint-disable-next-line new-cap
-  const router = express.Router(options || {});
+  const router = express.Router(options);
+
+  // Helmet HTTP headers
+  if (options.helmet) {
+    router.use(helmet(options.helmet));
+  }
+
+  // Set `X-Response-Time` header
+  if (options.responseTime) {
+    router.use(responseTime(options.responseTime));
+  }
+
+  // Assign a UUID to each request
+  if (options.id) {
+    router.use((req, res, next) => {
+      req.id = uuid.v4();
+      next();
+    });
+  }
+
+  // Assign IP address to each request
+  if (options.ip) {
+    // IP Address (converts ::ffff:127.0.0.1 to 127.0.0.1)
+    router.use((req, res, next) => {
+      const ipString = req.ip;
+      if (ipaddr.IPv4.isValid(ipString)) {
+        // ipString is IPv4
+        req.ipv4 = req.ip;
+      } else if (ipaddr.IPv6.isValid(ipString)) {
+        const ip = ipaddr.IPv6.parse(ipString);
+        if (ip.isIPv4MappedAddress()) {
+          req.ipv4 = ip.toIPv4Address().toString();
+        } else {
+          // NO-OP: ipString is IPv6
+        }
+      } else {
+        // NO-OP: ipString is invalid
+      }
+
+      next();
+    });
+  }
+
+  // Log Requests
+  if (options.logger && options.logRequests) {
+    // Log all requests (must be before routes)
+    router.use((req, res, next) => {
+      const logOptions = {};
+
+      if (options.id && req.id) {
+        Object.assign(logOptions, {
+          id: req.id,
+        });
+      }
+
+      if (options.ip && req.ipv4) {
+        Object.assign(logOptions, {
+          ip: req.ipv4,
+        });
+      }
+
+      Object.assign(logOptions, {
+        method: req.method.toUpperCase(),
+        path: req.path,
+      });
+
+      options.logger.info('[req]', logOptions);
+
+      next();
+    });
+  }
+
+  // Log Responses
+  if (options.logger && options.logResponses) {
+    router.use((req, _res, next) => {
+      onFinished(_res, (err, res) => {
+        const logOptions = {};
+
+        if (options.id && req.id) {
+          Object.assign(logOptions, {
+            id: req.id,
+          });
+        }
+
+        if (options.ip && req.ipv4) {
+          Object.assign(logOptions, {
+            ip: req.ipv4,
+          });
+        }
+
+        Object.assign(logOptions, {
+          method: req.method.toUpperCase(),
+          path: req.path,
+          status: res.statusCode,
+          time: res.get('x-response-time'),
+        });
+
+        options.logger.info('[res]', logOptions);
+
+        if (res.err && options.prettyError) {
+          // eslint-disable-next-line no-console
+          console.error('\n', pe.render(res.err));
+        }
+      });
+
+      next();
+    });
+  }
 
   // Additional properties
   _.assign(router, {
-    controllers: controllers || {},
+    controllers,
     routes: [],
 
     /**
