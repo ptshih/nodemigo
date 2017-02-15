@@ -21,14 +21,27 @@ pe.skipPackage('express', 'bluebird', 'lodash');
  * - `routes` an array of connected routes
  *   (all, get, post, put, patch, delete)
  *
- * @param {Object} options
- * @param {Object} controllers An object (map) of controllers: `name -> instance`
  * @return {Router} An instance of `Express.Router`
  */
-export default function Router(options = {}, controllers = {}) {
+export default function Router({ options = {}, controllers = {} }) {
   // Create a new `Express.Router` with `options`
   // eslint-disable-next-line new-cap
   const router = express.Router(options);
+
+  // Alias all PATCH to PUT
+  router.patch('*', (req, res, next) => {
+    // eslint: no-param-reassign
+    req.method = 'PUT';
+    next();
+  });
+
+  // Attach `db` to all requests
+  if (options.db) {
+    router.use((req, res, next) => {
+      req.db = options.db;
+      next();
+    });
+  }
 
   // Helmet HTTP headers
   if (options.helmet) {
@@ -104,6 +117,10 @@ export default function Router(options = {}, controllers = {}) {
   if (options.logger && options.logResponses) {
     router.use((req, _res, next) => {
       onFinished(_res, (err, res) => {
+        if (res.silent) {
+          return;
+        }
+
         const logOptions = {};
 
         if (options.id && req.id) {
