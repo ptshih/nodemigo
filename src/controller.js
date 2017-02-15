@@ -1,11 +1,6 @@
 import _ from 'lodash';
 import xml2js from 'xml2js';
 
-// Escape special characters in regex string
-function escapeRegExp(str) {
-  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
-}
-
 export default class Controller {
   constructor({ app, db, wss }) {
     this.app = app;
@@ -146,11 +141,10 @@ export default class Controller {
       } else if (type === 'string') {
         // strings and objectid
         // no transformation
-      } else if (type === 'regex') {
-        // regex case insensitive and escaping special characters
+      } else if (type === 'like') {
+        // SQL LIKE (case insensitive)
         vals = _.map(vals, v => ({
-          $regex: escapeRegExp(v),
-          $options: 'i',
+          $iLike: `%${v}%`,
         }));
       } else if (type === 'integer') {
         // integers
