@@ -80,13 +80,22 @@ export default class Controller {
 
   parseOrdering(req) {
     if (!req.query.order || !req.query.direction) {
-      return {};
+      return [];
     }
 
     const order = req.query.order;
-    const direction = req.query.direction.toUpperCase();
-    if (!['ASC', 'DESC'].includes(direction)) {
-      return {};
+    let direction = 'asc';
+    switch (req.query.direction) {
+      case 'asc':
+      case '1':
+        direction = 'ASC';
+        break;
+      case 'desc':
+      case '-1':
+        direction = 'DESC';
+        break;
+      default:
+        direction = 'ASC';
     }
 
     return [[order, direction]];
