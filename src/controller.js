@@ -55,8 +55,8 @@ export default class Controller {
   }
 
   parsePagination(req) {
-    let offset = _.parseInt(req.query.offset || req.query.skip) || 0;
-    const limit = _.parseInt(req.query.limit || req.query.count) || 0;
+    let offset = _.parseInt(req.query.offset || req.query.skip || this.offset) || 0;
+    const limit = _.parseInt(req.query.limit || req.query.count || this.limit) || 0;
 
     // Support using `page` instead of `offset`
     const page = _.parseInt(req.query.page) || 0;
