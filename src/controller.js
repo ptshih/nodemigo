@@ -208,7 +208,7 @@ export default class Controller {
 
   /**
    * Error
-   * - statusCode (http status code - number)
+   * - statusCode or status (http status code - number)
    * - type (internal error type - string)
    * - message (human readable - string)
    * - line (stack trace - string)
@@ -227,7 +227,7 @@ export default class Controller {
       };
     } else {
       error.message = err.message || 'Internal Server Error';
-      error.statusCode = _.parseInt(err.statusCode) || 500;
+      error.statusCode = _.parseInt(err.statusCode) || _.parseInt(err.status) || 500;
     }
 
     // Pass on any `meta` data from the original error
