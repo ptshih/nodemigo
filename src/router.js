@@ -61,7 +61,6 @@ export default function Router({ options = {}, controllers = {} }) {
     });
   }
 
-  // Assign IP address to each request
   if (options.ip) {
     // IP Address (converts ::ffff:127.0.0.1 to 127.0.0.1)
     router.use((req, res, next) => {
@@ -72,12 +71,16 @@ export default function Router({ options = {}, controllers = {} }) {
       } else if (ipaddr.IPv6.isValid(ipString)) {
         const ip = ipaddr.IPv6.parse(ipString);
         if (ip.isIPv4MappedAddress()) {
+          // IP Address (converts ::ffff:127.0.0.1 to 127.0.0.1)
           req.ipv4 = ip.toIPv4Address().toString();
         } else {
-          // NO-OP: ipString is IPv6
+          // ipString is IPv6
+          req.ipv6 = req.ip;
         }
       } else {
         // NO-OP: ipString is invalid
+        req.ipv4 = null;
+        req.ipv6 = null;
       }
 
       next();

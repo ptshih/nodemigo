@@ -38,3 +38,6 @@ jspm_packages
 
 # .gitignore - the files to not push via git
 lib
+
+# VS Code
+.vscode
