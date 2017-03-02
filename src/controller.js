@@ -49,26 +49,28 @@ export default class Controller {
   }
 
   parsePagination(req) {
+    let page = _.parseInt(req.query.page) || 0;
     let offset = _.parseInt(req.query.offset || req.query.skip || this.offset) || 0;
     const limit = _.parseInt(req.query.limit || req.query.count || this.limit) || 0;
 
-    // Support using `page` instead of `offset`
-    const page = _.parseInt(req.query.page) || 0;
-    if (page > 0) {
-      // IMPORTANT! `page` starts at 1
-      // if `page` is specified, we override `offset`
-      // calculate offset based on page and limit
-      // lets assume limit is 100
-      // page 1 is offset 0
-      // page 2 is offset 100
-      // etc...
+    if (limit === 0) {
+      // no limit, page is always 1
+      page = 1;
+    } else if (page > 0) {
+      // page was specified
       offset = (page - 1) * limit;
+    } else if (limit > 0) {
+      // limit and offset was specified
+      page = _.ceil((offset + 1) / limit);
+    } else {
+      // default page to 1
+      page = 1;
     }
 
     return {
+      page,
       offset,
       limit,
-      page,
     };
   }
 
