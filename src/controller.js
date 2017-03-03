@@ -1,6 +1,18 @@
 import _ from 'lodash';
 import xml2js from 'xml2js';
 
+function getOrderDirection(dir) {
+  switch (dir) {
+    case 'desc':
+    case '-1':
+      return 'DESC';
+    case 'asc':
+    case '1':
+    default:
+      return 'ASC';
+  }
+}
+
 export default class Controller {
   constructor({ app, db, wss }) {
     this.app = app;
@@ -75,26 +87,18 @@ export default class Controller {
   }
 
   parseOrdering(req) {
-    if (!req.query.order || !req.query.direction) {
+    if (!req.query.order) {
       return [];
     }
 
-    const order = req.query.order;
-    let direction = 'asc';
-    switch (req.query.direction) {
-      case 'asc':
-      case '1':
-        direction = 'ASC';
-        break;
-      case 'desc':
-      case '-1':
-        direction = 'DESC';
-        break;
-      default:
-        direction = 'ASC';
-    }
+    const order = [];
+    const pairs = req.query.order.split(',');
+    pairs.forEach((pair) => {
+      const [key, dir = 'asc'] = pair.split('|');
+      order.push([key, getOrderDirection(dir)]);
+    });
 
-    return [order, direction];
+    return order;
   }
 
   parseQueryParams(req) {
