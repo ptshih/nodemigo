@@ -94,7 +94,7 @@ export default class Controller {
         direction = 'ASC';
     }
 
-    return [[order, direction]];
+    return [order, direction];
   }
 
   parseQueryParams(req) {
