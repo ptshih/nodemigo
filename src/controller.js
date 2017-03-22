@@ -201,6 +201,11 @@ export default class Controller {
       data: res.data || {},
     };
 
+    // Extend meta (optional)
+    if (_.isPlainObject(res.meta)) {
+      Object.assign(envelope.meta, res.meta);
+    }
+
     // Paging (optional)
     if (_.isPlainObject(res.paging)) {
       envelope.meta.paging = res.paging;
