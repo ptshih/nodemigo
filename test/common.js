@@ -12,7 +12,6 @@ global.assert = chai.assert;
 
 // Sinon
 global.sinon = require('sinon');
-require('sinon-as-promised')(require('bluebird'));
 
 // Console
 console.json = (object, pretty) => {
