@@ -265,6 +265,8 @@ export default class Controller {
         defaultErrorType = 'UNAUTHORIZED';
         break;
       case 402:
+        defaultErrorType = 'PAYMENT_REQUIRED';
+        break;
       case 403:
         defaultErrorType = 'FORBIDDEN';
         break;
@@ -283,13 +285,37 @@ export default class Controller {
       case 410:
         defaultErrorType = 'GONE';
         break;
+      case 412:
+        defaultErrorType = 'PRECONDITION_FAILED';
+        break;
+      case 422:
+        defaultErrorType = 'UNPROCESSABLE_ENTITY';
+        break;
+      case 429:
+        defaultErrorType = 'TOO_MANY_REQUESTS';
+        break;
+      case 500:
+        defaultErrorType = 'INTERNAL_SERVER_ERROR';
+        break;
       case 501:
         defaultErrorType = 'NOT_IMPLEMENTED';
         break;
-      case 500:
-      default:
-        defaultErrorType = 'INTERNAL_SERVER_ERROR';
+      case 502:
+        defaultErrorType = 'GATEWAY_ERROR';
         break;
+      case 503:
+        defaultErrorType = 'SERVICE_UNAVAILABLE';
+        break;
+      default: {
+        if (error.statusCode >= 400 && error.statusCode < 500) {
+          defaultErrorType = 'UNKNOWN_CLIENT_ERROR';
+        } else if (error.statusCode >= 500) {
+          defaultErrorType = 'UNKNOWN_SERVER_ERROR';
+        } else {
+          defaultErrorType = 'UNKNOWN_ERROR';
+        }
+        break;
+      }
     }
 
     const envelope = {
