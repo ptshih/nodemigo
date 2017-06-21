@@ -1,14 +1,13 @@
 module.exports = class ApiError extends Error {
-  constructor(message, statusCode) {
-    // Calling parent constructor of base Error class.
+  constructor(message, { statusCode, meta, data }) {
     super(message);
 
-    // Saving class name in the property of our custom error as a shortcut.
-    this.name = this.constructor.name;
+    this.name = 'ApiError';
     this.message = message;
     this.statusCode = statusCode || 500;
+    this.meta = meta;
+    this.data = data;
 
-    // Capturing stack trace, excluding constructor call from it.
-    Error.captureStackTrace(this, this.constructor);
+    Error.captureStackTrace(this, ApiError);
   }
 };

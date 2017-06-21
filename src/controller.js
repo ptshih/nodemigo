@@ -239,10 +239,8 @@ export default class Controller {
     } else {
       error.message = err.message || 'Internal Server Error';
       error.statusCode = _.parseInt(err.statusCode) || _.parseInt(err.status) || 500;
+      error.meta = err.meta || error.meta;
     }
-
-    // Pass on any `meta` data from the original error
-    error.meta = err.meta || error.meta;
 
     // Pass on any `data` from the original error
     error.data = err.data || {};
