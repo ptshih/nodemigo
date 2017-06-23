@@ -193,6 +193,91 @@ export default class Controller {
     return query;
   }
 
+  getErrorType(error) {
+    if (error.type) {
+      return error.type;
+    }
+
+    let errorType;
+    switch (error.statusCode) {
+      case 400:
+        errorType = 'BAD_REQUEST';
+        break;
+      case 401:
+        errorType = 'UNAUTHORIZED';
+        break;
+      case 402:
+        errorType = 'PAYMENT_REQUIRED';
+        break;
+      case 403:
+        errorType = 'FORBIDDEN';
+        break;
+      case 404:
+        errorType = 'NOT_FOUND';
+        break;
+      case 405:
+        errorType = 'METHOD_NOT_ALLOWED';
+        break;
+      case 406:
+        errorType = 'NOT_ACCEPTABLE';
+        break;
+      case 409:
+        errorType = 'CONFLICT';
+        break;
+      case 410:
+        errorType = 'GONE';
+        break;
+      case 412:
+        errorType = 'PRECONDITION_FAILED';
+        break;
+      case 422:
+        errorType = 'UNPROCESSABLE_ENTITY';
+        break;
+      case 429:
+        errorType = 'TOO_MANY_REQUESTS';
+        break;
+      case 500:
+        errorType = 'INTERNAL_SERVER_ERROR';
+        break;
+      case 501:
+        errorType = 'NOT_IMPLEMENTED';
+        break;
+      case 502:
+        errorType = 'GATEWAY_ERROR';
+        break;
+      case 503:
+        errorType = 'SERVICE_UNAVAILABLE';
+        break;
+      default:
+        {
+          if (error.statusCode >= 400 && error.statusCode < 500) {
+            errorType = 'UNKNOWN_CLIENT_ERROR';
+          } else if (error.statusCode >= 500) {
+            errorType = 'UNKNOWN_SERVER_ERROR';
+          } else {
+            errorType = 'UNKNOWN_ERROR';
+          }
+          break;
+        }
+    }
+    return errorType;
+  }
+
+  getErrorMessage(error) {
+    let msg;
+    if (error.message) {
+      return error.message;
+    }
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      msg = 'Client Error';
+    } else if (error.statusCode >= 500) {
+      msg = 'Internal Server Error';
+    } else {
+      msg = 'Unknown Error';
+    }
+    return msg;
+  }
+
   successResponse(req, res, next) {
     const envelope = {
       meta: {
@@ -225,115 +310,52 @@ export default class Controller {
    * - line (stack trace - string)
    */
   errorResponse(err, req, res, next) {
-    const error = new Error();
-
     if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
       // Express Validator
       const messages = req.validationErrors().map(ve => `[${ve.param} -> ${ve.msg}]`);
-      error.message = messages.join(', ');
-      error.statusCode = 400;
-      error.type = 'EXPRESS_VALIDATION_ERROR';
-      error.meta = {
+      err.statusCode = 400;
+      err.type = 'EXPRESS_VALIDATION_ERROR';
+      err.message = messages.join(', ');
+      err.meta = {
         validationErrors: req.validationErrors(),
       };
     } else {
-      error.message = err.message || 'Internal Server Error';
-      error.statusCode = _.parseInt(err.statusCode) || _.parseInt(err.status) || 500;
-      error.meta = err.meta || error.meta;
+      err.statusCode = _.parseInt(err.statusCode) || _.parseInt(err.status) || 500;
+      err.type = this.getErrorType(err);
+      err.message = this.getErrorMessage(err);
     }
 
-    // Pass on any `data` from the original error
-    error.data = err.data || {};
+    // Pass on any `meta` or `data` from the original error
+    err.meta = err.meta || {};
+    err.data = err.data || {};
 
     // Try and extract the line in which the error was caught
     if (err.stack) {
       try {
-        error.line = err.stack.split('\n')[1].match(/at\s(.*)/)[1];
+        err.line = err.stack.split('\n')[1].match(/at\s(.*)/)[1];
       } catch (e) {
-        error.line = null;
-      }
-    }
-
-    let defaultErrorType;
-    switch (error.statusCode) {
-      case 400:
-        defaultErrorType = 'BAD_REQUEST';
-        break;
-      case 401:
-        defaultErrorType = 'UNAUTHORIZED';
-        break;
-      case 402:
-        defaultErrorType = 'PAYMENT_REQUIRED';
-        break;
-      case 403:
-        defaultErrorType = 'FORBIDDEN';
-        break;
-      case 404:
-        defaultErrorType = 'NOT_FOUND';
-        break;
-      case 405:
-        defaultErrorType = 'METHOD_NOT_ALLOWED';
-        break;
-      case 406:
-        defaultErrorType = 'NOT_ACCEPTABLE';
-        break;
-      case 409:
-        defaultErrorType = 'CONFLICT';
-        break;
-      case 410:
-        defaultErrorType = 'GONE';
-        break;
-      case 412:
-        defaultErrorType = 'PRECONDITION_FAILED';
-        break;
-      case 422:
-        defaultErrorType = 'UNPROCESSABLE_ENTITY';
-        break;
-      case 429:
-        defaultErrorType = 'TOO_MANY_REQUESTS';
-        break;
-      case 500:
-        defaultErrorType = 'INTERNAL_SERVER_ERROR';
-        break;
-      case 501:
-        defaultErrorType = 'NOT_IMPLEMENTED';
-        break;
-      case 502:
-        defaultErrorType = 'GATEWAY_ERROR';
-        break;
-      case 503:
-        defaultErrorType = 'SERVICE_UNAVAILABLE';
-        break;
-      default: {
-        if (error.statusCode >= 400 && error.statusCode < 500) {
-          defaultErrorType = 'UNKNOWN_CLIENT_ERROR';
-        } else if (error.statusCode >= 500) {
-          defaultErrorType = 'UNKNOWN_SERVER_ERROR';
-        } else {
-          defaultErrorType = 'UNKNOWN_ERROR';
-        }
-        break;
+        err.line = null;
       }
     }
 
     const envelope = {
       meta: {
-        statusCode: error.statusCode,
-        errorType: error.type || defaultErrorType,
-        errorMessage: error.message,
+        statusCode: err.statusCode,
+        errorType: err.type,
+        errorMessage: err.message,
       },
-      data: error.data,
+      data: err.data,
     };
 
     // Error Line from Stack (optional)
-    if (error.line) {
-      envelope.meta.errorLine = error.line;
+    if (err.line) {
+      envelope.meta.errorLine = err.line;
     }
 
     // Response
-    res.status(error.statusCode);
-    res.error = error;
-    res.err = error;
+    res.status(err.statusCode);
+    res.error = err;
+    res.err = err;
     res.envelope = envelope;
 
     next();
