@@ -310,22 +310,9 @@ export default class Controller {
    * - line (stack trace - string)
    */
   errorResponse(err, req, res, next) {
-    if (_.isFunction(req.validationErrors) && req.validationErrors().length) {
-      // Express Validator
-      const messages = req.validationErrors().map(ve => `[${ve.param} -> ${ve.msg}]`);
-      err.statusCode = 400;
-      err.type = 'EXPRESS_VALIDATION_ERROR';
-      err.message = messages.join(', ');
-      err.meta = {
-        validationErrors: req.validationErrors(),
-      };
-    } else {
-      err.statusCode = _.parseInt(err.statusCode) || _.parseInt(err.status) || 500;
-      err.type = this.getErrorType(err);
-      err.message = this.getErrorMessage(err);
-    }
-
-    // Pass on any `meta` or `data` from the original error
+    err.statusCode = _.parseInt(err.statusCode) || _.parseInt(err.status) || 500;
+    err.type = this.getErrorType(err);
+    err.message = this.getErrorMessage(err);
     err.meta = err.meta || {};
     err.data = err.data || {};
 
