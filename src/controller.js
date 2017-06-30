@@ -22,14 +22,13 @@ export default class Controller {
     // Controller defined routes
     this.routes = [];
 
-    // Controller defined middleware
-    this.pre = []; // run before route middleware
-    this.before = []; // run after route middleware but before route handler
-    this.after = []; // run after route handler
+    // Controller defined middleware (runs immediately before and after route handler)
+    this.before = [];
+    this.after = [];
 
-    // Internal middleware
-    this._begin = [];
-    this._end = [
+    // Internal before/after middleware
+    this._before = [];
+    this._after = [
       this.successResponse,
       this.errorResponse,
       this.finalResponse,

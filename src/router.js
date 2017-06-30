@@ -193,18 +193,19 @@ export default function Router({ options = {}, controllers = {} }) {
 
           // Setup controller scoped middleware
           // These apply to all routes in the controller
-          const pre = _.invokeMap(controller.pre, 'bind', controller) || [];
           const before = _.invokeMap(controller.before, 'bind', controller) || [];
           const after = _.invokeMap(controller.after, 'bind', controller) || [];
 
-          const _begin = _.invokeMap(controller._begin, 'bind', controller) || [];
-          const _end = _.invokeMap(controller._end, 'bind', controller) || [];
+          const _before = _.invokeMap(controller._before, 'bind', controller) || [];
+          const _after = _.invokeMap(controller._after, 'bind', controller) || [];
 
           // Build the route handler (callback)
           const handler = router._buildHandler(controller, route);
 
           // Connect the route
-          router[method](path, _begin, pre, route.middleware || [], before, handler, after, _end);
+          const routeBefore = route.before || route.middleware || []; // route.middleware is DEPRECATED
+          const routeAfter = route.after || [];
+          router[method](path, _before, routeBefore, before, handler, after, routeAfter, _after);
 
           // Add route to set of connected routes
           router.routes.push({
