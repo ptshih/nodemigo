@@ -2,7 +2,10 @@ import _ from 'lodash';
 import xml2js from 'xml2js';
 import pinoHttp from 'pino-http';
 
-const logger = pinoHttp();
+const logger = pinoHttp({
+  name: 'router',
+  messageKey: 'message',
+});
 
 function getOrderDirection(dir) {
   switch (dir) {
