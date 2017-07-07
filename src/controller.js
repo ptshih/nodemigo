@@ -1,5 +1,8 @@
 import _ from 'lodash';
 import xml2js from 'xml2js';
+import pinoHttp from 'pino-http';
+
+const logger = pinoHttp();
 
 function getOrderDirection(dir) {
   switch (dir) {
@@ -356,6 +359,9 @@ export default class Controller {
     if (res.headersSent) {
       return;
     }
+
+    // Logger
+    logger(req, res);
 
     // Look for `.json` or `.xml` extension in path
     // And override request accept header

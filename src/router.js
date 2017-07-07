@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import express from 'express';
-import onFinished from 'on-finished';
+// import onFinished from 'on-finished';
 import PrettyError from 'pretty-error';
 import uuid from 'uuid';
 import ipaddr from 'ipaddr.js';
@@ -82,80 +82,6 @@ export default function Router({ options = {}, controllers = {} }) {
         req.ipv4 = null;
         req.ipv6 = null;
       }
-
-      next();
-    });
-  }
-
-  // Log Requests
-  if (options.logger && options.logRequests) {
-    // Log all requests (must be before routes)
-    router.use((req, res, next) => {
-      const logOptions = {
-        type: 'request',
-      };
-
-      if (options.id && req.id) {
-        Object.assign(logOptions, {
-          id: req.id,
-        });
-      }
-
-      if (options.ip && req.ipv4) {
-        Object.assign(logOptions, {
-          ip: req.ipv4,
-        });
-      }
-
-      Object.assign(logOptions, {
-        method: req.method.toUpperCase(),
-        path: req.path,
-      });
-
-      options.logger.info(logOptions);
-
-      next();
-    });
-  }
-
-  // Log Responses
-  if (options.logger && options.logResponses) {
-    router.use((req, _res, next) => {
-      onFinished(_res, (err, res) => {
-        if (res.silent) {
-          return;
-        }
-
-        const logOptions = {
-          type: 'response',
-        };
-
-        if (options.id && req.id) {
-          Object.assign(logOptions, {
-            id: req.id,
-          });
-        }
-
-        if (options.ip && req.ipv4) {
-          Object.assign(logOptions, {
-            ip: req.ipv4,
-          });
-        }
-
-        Object.assign(logOptions, {
-          method: req.method.toUpperCase(),
-          path: req.path,
-          status: res.statusCode,
-          time: res.get('x-response-time'),
-        });
-
-        options.logger.info(logOptions);
-
-        if (res.err && options.prettyError) {
-          // eslint-disable-next-line no-console
-          console.error('\n', pe.render(res.err));
-        }
-      });
 
       next();
     });
