@@ -364,7 +364,9 @@ export default class Controller {
     }
 
     // Logger
-    logger(req, res);
+    if (res.logger) {
+      logger(req, res);
+    }
 
     // Look for `.json` or `.xml` extension in path
     // And override request accept header
