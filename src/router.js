@@ -87,53 +87,65 @@ export default function Router({ options = {}, controllers = {} }) {
     });
   }
 
-  // Log Responses
+  // Log Requests
   if (options.logger && options.logRequests) {
+    // Log all requests (must be before routes)
+    router.use((req, res, next) => {
+      const logOptions = {};
+
+      if (options.id && req.id) {
+        Object.assign(logOptions, {
+          id: req.id,
+        });
+      }
+
+      if (options.ip && req.ipv4) {
+        Object.assign(logOptions, {
+          ip: req.ipv4,
+        });
+      }
+
+      Object.assign(logOptions, {
+        method: req.method.toUpperCase(),
+        path: req.path,
+      });
+
+      options.logger.info('[req]', logOptions);
+
+      next();
+    });
+  }
+
+  // Log Responses
+  if (options.logger && options.logResponses) {
     router.use((req, _res, next) => {
       onFinished(_res, (err, res) => {
         if (res.silent) {
           return;
         }
 
-        const logData = {};
+        const logOptions = {};
 
         if (options.id && req.id) {
-          Object.assign(logData, {
+          Object.assign(logOptions, {
             id: req.id,
           });
         }
 
         if (options.ip && req.ipv4) {
-          Object.assign(logData, {
-            remoteIp: req.ipv4,
+          Object.assign(logOptions, {
+            ip: req.ipv4,
           });
         }
 
-        Object.assign(logData, {
-          // https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#HttpRequest
-          // "requestMethod": string,
-          // "requestUrl": string,
-          // "requestSize": string,
-          // "status": number,
-          // "responseSize": string,
-          // "userAgent": string,
-          // "remoteIp": string,
-          // "serverIp": string,
-          // "referer": string,
-          // "latency": string,
-          // "cacheLookup": boolean,
-          // "cacheHit": boolean,
-          // "cacheValidatedWithOriginServer": boolean,
-          // "cacheFillBytes": string,
-          httpRequest: {
-            requestMethod: req.method,
-            requestUrl: req.url,
-            status: res.statusCode,
-            latency: res.get('x-response-time'),
-          },
+        Object.assign(logOptions, {
+          method: req.method.toUpperCase(),
+          path: req.path,
+          status: res.statusCode,
+          time: res.get('x-response-time'),
         });
 
-        options.logger.info('[res]', logData);
+        options.logger.info('[res]', logOptions);
 
         if (res.err && options.prettyError) {
           // eslint-disable-next-line no-console
