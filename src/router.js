@@ -87,69 +87,53 @@ export default function Router({ options = {}, controllers = {} }) {
     });
   }
 
-  // Log Requests
-  if (options.logger && options.logRequests) {
-    // Log all requests (must be before routes)
-    router.use((req, res, next) => {
-      const logOptions = {
-        message: 'Request',
-      };
-
-      if (options.id && req.id) {
-        Object.assign(logOptions, {
-          id: req.id,
-        });
-      }
-
-      if (options.ip && req.ipv4) {
-        Object.assign(logOptions, {
-          ip: req.ipv4,
-        });
-      }
-
-      Object.assign(logOptions, {
-        method: req.method.toUpperCase(),
-        path: req.path,
-      });
-
-      options.logger.info(logOptions);
-
-      next();
-    });
-  }
-
   // Log Responses
-  if (options.logger && options.logResponses) {
+  if (options.logger && options.logRequests) {
     router.use((req, _res, next) => {
       onFinished(_res, (err, res) => {
         if (res.silent) {
           return;
         }
 
-        const logOptions = {
-          message: 'Response',
-        };
+        const logData = {};
 
         if (options.id && req.id) {
-          Object.assign(logOptions, {
+          Object.assign(logData, {
             id: req.id,
           });
         }
 
         if (options.ip && req.ipv4) {
-          Object.assign(logOptions, {
-            ip: req.ipv4,
+          Object.assign(logData, {
+            remoteIp: req.ipv4,
           });
         }
 
-        Object.assign(logOptions, {
-          method: req.method.toUpperCase(),
-          path: req.path,
-          status: res.statusCode,
-          time: res.get('x-response-time'),
+        Object.assign(logData, {
+          // https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#HttpRequest
+          // "requestMethod": string,
+          // "requestUrl": string,
+          // "requestSize": string,
+          // "status": number,
+          // "responseSize": string,
+          // "userAgent": string,
+          // "remoteIp": string,
+          // "serverIp": string,
+          // "referer": string,
+          // "latency": string,
+          // "cacheLookup": boolean,
+          // "cacheHit": boolean,
+          // "cacheValidatedWithOriginServer": boolean,
+          // "cacheFillBytes": string,
+          httpRequest: {
+            requestMethod: req.method,
+            requestUrl: req.url,
+            status: res.statusCode,
+            latency: res.get('x-response-time'),
+          },
         });
 
-        options.logger.info(logOptions);
+        options.logger.info('[res]', logData);
 
         if (res.err && options.prettyError) {
           // eslint-disable-next-line no-console
