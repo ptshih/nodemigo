@@ -91,7 +91,9 @@ export default function Router({ options = {}, controllers = {} }) {
   if (options.logger && options.logRequests) {
     // Log all requests (must be before routes)
     router.use((req, res, next) => {
-      const logOptions = {};
+      const logOptions = {
+        type: 'request',
+      };
 
       if (options.id && req.id) {
         Object.assign(logOptions, {
@@ -110,7 +112,7 @@ export default function Router({ options = {}, controllers = {} }) {
         path: req.path,
       });
 
-      options.logger.info('[req]', logOptions);
+      options.logger.info(logOptions);
 
       next();
     });
@@ -124,7 +126,9 @@ export default function Router({ options = {}, controllers = {} }) {
           return;
         }
 
-        const logOptions = {};
+        const logOptions = {
+          type: 'response',
+        };
 
         if (options.id && req.id) {
           Object.assign(logOptions, {
@@ -145,7 +149,7 @@ export default function Router({ options = {}, controllers = {} }) {
           time: res.get('x-response-time'),
         });
 
-        options.logger.info('[res]', logOptions);
+        options.logger.info(logOptions);
 
         if (res.err && options.prettyError) {
           // eslint-disable-next-line no-console
